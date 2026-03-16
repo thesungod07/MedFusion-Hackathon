@@ -18,6 +18,7 @@ from .healthmap_service import get_healthmap_epi_series
 from .promed_service import get_promed_epi_series
 from .ihme_service import get_ihme_burden_series
 from .ukgov_service import get_ukgov_health_series
+from .reference_data import get_reference_series
 
 
 MetricName = Literal["incidence", "growth_rate", "7d_moving_avg"]
@@ -366,6 +367,22 @@ async def run_analytics_query(query: AnalyticsQuery) -> AnalyticsResult:
                 filtered = _merge_series(filtered, ukgov_series)
         except Exception:
             pass
+
+    # ── Baseline reference data for non-COVID diseases ──────────────────
+    # Always seed the series with historically-grounded monthly estimates
+    # so charts render a full timeline (2000→present). Real API data is then
+    # merged ON TOP, overriding reference points on matching months.
+    # This ensures every disease always has a meaningful chart regardless of
+    # how much (or little) live API data is available.
+    if not is_covid:
+        ref_country = "Global" if is_global else country_name
+        ref_series = get_reference_series(query.disease, ref_country)
+        if ref_series:
+            # Trim reference points for any year-month already covered by real data
+            # so real API data takes precedence where available.
+            real_months = {p["date"][:7] for p in filtered}
+            ref_to_add = [p for p in ref_series if p["date"][:7] not in real_months]
+            filtered = _merge_series(filtered, ref_to_add)
 
     # ── Compute derived metrics ─────────────────────────────────────────
     _compute_deltas(filtered)
