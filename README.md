@@ -118,14 +118,14 @@ MedFusion/
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- Python 3.10+ (recommended on Windows: **Python 3.12**)
 - pip / venv
 
 ### 1. Clone the Repository
 
 ```bash
 git clone <repository-url>
-cd MedFusion
+cd MedFusion-Hackathon
 ```
 
 ### 2. Create & Activate Virtual Environment

@@ -10,7 +10,7 @@ from .disease_service import (
     get_global_disease_summary,
     get_global_disease_trend,
 )
-from .who_service import get_who_disease_series
+from .who_service import get_who_disease_series, get_who_disease_series_global
 from .owid_service import get_owid_country_series
 from .cdc_service import get_cdc_indicator_series
 from .ecdc_service import get_ecdc_indicator_series
@@ -44,10 +44,13 @@ class AnalyticsSeriesPoint(BaseModel):
     date: str
     cases: int
     deaths: int
+    new_cases: Optional[int] = None
+    new_deaths: Optional[int] = None
     incidence_per_100k: Optional[float] = None
     growth_rate: Optional[float] = None
     moving_avg_7d: Optional[float] = None
     source: Optional[str] = None
+    is_cumulative: Optional[bool] = None
 
 
 class AnalyticsResult(BaseModel):
@@ -75,6 +78,9 @@ def _compute_incidence(series: List[Dict[str, Any]], population: int) -> None:
 def _compute_growth_rate(series: List[Dict[str, Any]]) -> None:
     prev_cases: Optional[int] = None
     for point in series:
+        if point.get("is_cumulative") is False:
+            point["growth_rate"] = None
+            continue
         cases = point["cases"]
         if prev_cases is None or prev_cases == 0:
             point["growth_rate"] = None
@@ -86,7 +92,10 @@ def _compute_growth_rate(series: List[Dict[str, Any]]) -> None:
 def _compute_moving_avg_7d(series: List[Dict[str, Any]]) -> None:
     window: List[int] = []
     for point in series:
-        window.append(point["cases"])
+        base = point.get("new_cases")
+        if base is None:
+            base = point.get("cases", 0)
+        window.append(int(base))
         if len(window) > 7:
             window.pop(0)
         point["moving_avg_7d"] = sum(window) / len(window)
@@ -104,6 +113,39 @@ def _merge_series(
             merged.append(pt)
     merged.sort(key=lambda p: p["date"])
     return merged
+
+
+def _compute_deltas(series: List[Dict[str, Any]]) -> None:
+    """
+    Populate new_cases/new_deaths.
+
+    - If is_cumulative is True: deltas are day-over-day diffs (clamped at >=0)
+    - If is_cumulative is False: treat cases/deaths as already "per-period"
+    """
+    prev_cases: Optional[int] = None
+    prev_deaths: Optional[int] = None
+
+    for pt in series:
+        is_cum = pt.get("is_cumulative", True)
+        cases = int(pt.get("cases", 0))
+        deaths = int(pt.get("deaths", 0))
+
+        if is_cum:
+            if prev_cases is None:
+                pt["new_cases"] = None
+            else:
+                pt["new_cases"] = max(0, cases - prev_cases)
+
+            if prev_deaths is None:
+                pt["new_deaths"] = None
+            else:
+                pt["new_deaths"] = max(0, deaths - prev_deaths)
+        else:
+            pt["new_cases"] = cases
+            pt["new_deaths"] = deaths
+
+        prev_cases = cases
+        prev_deaths = deaths
 
 
 # ---------------------------------------------------------------------------
@@ -228,6 +270,7 @@ async def run_analytics_query(query: AnalyticsQuery) -> AnalyticsResult:
                     "cases": p["cases"],
                     "deaths": p["deaths"],
                     "source": "disease_sh",
+                    "is_cumulative": True,
                 }
                 for p in trend
             ]
@@ -235,10 +278,16 @@ async def run_analytics_query(query: AnalyticsQuery) -> AnalyticsResult:
             pass
 
     # ── WHO GHO enrichment ──────────────────────────────────────────────
-    if "who" in query.sources and not is_global:
+    if "who" in query.sources:
         try:
-            who_series = await get_who_disease_series(query.disease, region_normalized)
+            if is_global:
+                who_series = await get_who_disease_series_global(query.disease)
+            else:
+                who_series = await get_who_disease_series(query.disease, region_normalized)
             if who_series:
+                # WHO indicators are typically per-year counts/rates, not cumulative.
+                for p in who_series:
+                    p["is_cumulative"] = False
                 filtered = _merge_series(filtered, who_series)
         except Exception:
             pass
@@ -249,7 +298,15 @@ async def run_analytics_query(query: AnalyticsQuery) -> AnalyticsResult:
             owid_series = await get_owid_country_series(query.disease, region_normalized)
             if owid_series:
                 owid_normalised = [
-                    {"date": p["date"], "cases": p["cases"], "deaths": p["deaths"], "source": "owid"}
+                    {
+                        "date": p["date"],
+                        "cases": p["cases"],
+                        "deaths": p["deaths"],
+                        "source": "owid",
+                        "is_cumulative": True,
+                        "new_cases": p.get("new_cases"),
+                        "new_deaths": p.get("new_deaths"),
+                    }
                     for p in owid_series
                 ]
                 filtered = _merge_series(filtered, owid_normalised)
@@ -311,6 +368,7 @@ async def run_analytics_query(query: AnalyticsQuery) -> AnalyticsResult:
             pass
 
     # ── Compute derived metrics ─────────────────────────────────────────
+    _compute_deltas(filtered)
     _compute_incidence(filtered, population=population)
     _compute_growth_rate(filtered)
     _compute_moving_avg_7d(filtered)

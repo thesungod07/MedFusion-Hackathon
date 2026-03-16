@@ -1023,6 +1023,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
     <script>
       /* ═══════════════════════════════════════════════════════════════════
          APPLICATION LOGIC
@@ -1105,6 +1106,11 @@
             titleFont: { family: 'Inter', size: 12 }, bodyFont: { family: 'Inter', size: 11 },
             padding: 10, cornerRadius: 8
           },
+          zoom: {
+            pan: { enabled: true, mode: 'x', modifierKey: 'shift' },
+            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+            limits: { x: { minRange: 10 } }
+          }
         },
         scales: {
           x: { ticks: { color: '#64748b', font: { size: 10, family: 'Inter' }, maxTicksLimit: 8 }, grid: { color: 'rgba(148,163,184,0.06)' } },
@@ -1119,11 +1125,12 @@
           casesChart = new Chart($('cases-chart').getContext('2d'), {
             type: 'line',
             data: { labels: [], datasets: [
-              { label: 'Daily cases', data: [], borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.08)', borderWidth: 1.5, tension: 0.3, pointRadius: 0, fill: true },
+              { label: 'New cases', data: [], borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.08)', borderWidth: 1.5, tension: 0.3, pointRadius: 0, fill: true },
               { label: '7d avg', data: [], borderColor: '#34d399', borderWidth: 2, tension: 0.35, pointRadius: 0, fill: false, borderDash: [4, 2] },
             ]},
             options: { ...chartDefaults },
           });
+          $('cases-chart').addEventListener('dblclick', () => casesChart?.resetZoom?.());
         }
 
         if (!deathsChart) {
@@ -1134,6 +1141,7 @@
             ]},
             options: { ...chartDefaults },
           });
+          $('deaths-chart').addEventListener('dblclick', () => deathsChart?.resetZoom?.());
         }
 
         if (!incidenceChart) {
@@ -1144,6 +1152,7 @@
             ]},
             options: { ...chartDefaults },
           });
+          $('incidence-chart').addEventListener('dblclick', () => incidenceChart?.resetZoom?.());
         }
 
         if (!growthChart) {
@@ -1166,6 +1175,7 @@
               },
             },
           });
+          $('growth-chart').addEventListener('dblclick', () => growthChart?.resetZoom?.());
         }
       }
 
@@ -1179,7 +1189,7 @@
 
         // Epi curve
         casesChart.data.labels = labels;
-        casesChart.data.datasets[0].data = series.map(p => p.cases ?? null);
+        casesChart.data.datasets[0].data = series.map(p => p.new_cases ?? null);
         casesChart.data.datasets[1].data = series.map(p => p.moving_avg_7d ?? null);
         casesChart.update();
 
@@ -1205,7 +1215,25 @@
       }
 
       function updateKpis(globalData, analytics, visibleDays) {
-        if (globalData) {
+        // "Global" KPI cards:
+        // - For COVID-19, use real-time disease.sh snapshot (today deltas available).
+        // - Otherwise, fall back to analytics (e.g. WHO series) if present.
+        const aSeries = analytics?.series || [];
+        const aLatest = aSeries.length ? aSeries[aSeries.length - 1] : null;
+        const canUseAnalyticsGlobal = analytics && (analytics.region || '').toLowerCase() === 'global' && aLatest;
+
+        if (globalData && (analytics?.disease || '').toLowerCase().includes('covid')) {
+          kGlobalCases.textContent = fmt(globalData.cases);
+          kGlobalToday.textContent = '+' + fmt(globalData.todayCases ?? 0);
+          kGlobalDeaths.textContent = fmt(globalData.deaths);
+          kGlobalDeathsToday.textContent = '+' + fmt(globalData.todayDeaths ?? 0);
+        } else if (canUseAnalyticsGlobal) {
+          kGlobalCases.textContent = fmt(aLatest.cases ?? null);
+          kGlobalToday.textContent = aLatest.new_cases != null ? ('+' + fmt(aLatest.new_cases)) : '—';
+          kGlobalDeaths.textContent = fmt(aLatest.deaths ?? null);
+          kGlobalDeathsToday.textContent = aLatest.new_deaths != null ? ('+' + fmt(aLatest.new_deaths)) : '—';
+        } else if (globalData) {
+          // Keep previous behaviour as last resort.
           kGlobalCases.textContent = fmt(globalData.cases);
           kGlobalToday.textContent = '+' + fmt(globalData.todayCases ?? 0);
           kGlobalDeaths.textContent = fmt(globalData.deaths);
@@ -1226,7 +1254,7 @@
           kPoints.textContent = fmt(visibleDays ?? s.points_returned);
 
           const suffix = visibleDays && s.points_returned && visibleDays < s.points_returned
-            ? `last ${visibleDays} days` : 'full timeline';
+            ? `last ${visibleDays} days` : 'Full timeline';
           regionTitle.textContent = `${analytics.region} · ${analytics.disease} · ${suffix}`;
         }
       }

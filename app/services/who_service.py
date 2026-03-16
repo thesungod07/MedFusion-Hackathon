@@ -117,6 +117,76 @@ async def get_who_indicator_series(
     return points
 
 
+async def get_who_indicator_series_global(indicator_code: str) -> List[Dict[str, Any]]:
+    """
+    Fetch time-series data for a WHO indicator at a global aggregate level.
+
+    WHO GHO uses special SpatialDim values for global rollups depending on indicator.
+    We try a small set of common values and return the first non-empty series.
+    """
+    url = f"{WHO_GHO_BASE}/{indicator_code}"
+
+    def _parse_points(data: Any) -> List[Dict[str, Any]]:
+        values = (data or {}).get("value", [])
+        points: List[Dict[str, Any]] = []
+        for entry in values:
+            year = entry.get("TimeDim") or entry.get("TimeDimensionValue") or entry.get("Time")
+            numeric = entry.get("NumericValue") or entry.get("Value")
+            if year is None or numeric is None:
+                continue
+            try:
+                year_int = int(str(year)[:4])
+                value = float(numeric)
+            except (ValueError, TypeError):
+                continue
+            points.append(
+                {
+                    "date": f"{year_int}-01-01",
+                    "cases": int(value),
+                    "deaths": 0,
+                    "source": "who_gho",
+                }
+            )
+        points.sort(key=lambda p: p["date"])
+        return points
+
+    # Common global roll-up keys seen in WHO GHO.
+    candidate_filters = [
+        "SpatialDim eq 'GLOBAL'",
+        "SpatialDim eq 'WLD'",
+        "SpatialDim eq 'World'",
+        "SpatialDim eq 'GLB'",
+        "SpatialDimType eq 'GLOBAL'",
+        "SpatialDimType eq 'GLO'",
+    ]
+
+    for filter_expr in candidate_filters:
+        try:
+            data = await _fetch_gho_json(url, params={"$filter": filter_expr})
+            pts = _parse_points(data)
+            if pts:
+                return pts
+        except Exception:
+            continue
+
+    # Best-effort fallback: attempt server-side aggregation by year if OData $apply is supported.
+    # Not guaranteed to be available across all WHO GHO endpoints.
+    try:
+        data = await _fetch_gho_json(
+            url,
+            params={
+                "$apply": "groupby((TimeDim),aggregate(NumericValue with sum as NumericValue))",
+            },
+        )
+        pts = _parse_points(data)
+        if pts:
+            return pts
+    except Exception:
+        pass
+
+    return []
+
+
 async def get_who_disease_series(
     disease: str, country: str
 ) -> List[Dict[str, Any]]:
@@ -128,3 +198,13 @@ async def get_who_disease_series(
     if not indicator:
         return []
     return await get_who_indicator_series(indicator, country)
+
+
+async def get_who_disease_series_global(disease: str) -> List[Dict[str, Any]]:
+    """
+    Global aggregate series for a disease (when available in WHO GHO).
+    """
+    indicator = DISEASE_INDICATOR_MAP.get(disease.lower())
+    if not indicator:
+        return []
+    return await get_who_indicator_series_global(indicator)
