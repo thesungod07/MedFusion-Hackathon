@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MedFusion — Disease Surveillance Intelligence Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="MedFusion: Interactive disease surveillance intelligence dashboard with multi-source epidemiological analytics." />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" />
+    <style>
+      /* ═══════════════════════════════════════════════════════════════════
+         DESIGN SYSTEM
+         ═══════════════════════════════════════════════════════════════════ */
+      :root {
+        color-scheme: dark;
+        --bg-deep: #020617;
+        --bg-surface: #0a0f1e;
+        --bg-card: rgba(10, 15, 35, 0.75);
+        --bg-card-hover: rgba(15, 23, 50, 0.85);
+        --bg-input: rgba(6, 10, 28, 0.9);
+        --accent: #38bdf8;
+        --accent-glow: rgba(56, 189, 248, 0.25);
+        --accent-strong: #0ea5e9;
+        --accent2: #a78bfa;
+        --accent2-glow: rgba(167, 139, 250, 0.2);
+        --accent3: #34d399;
+        --accent3-glow: rgba(52, 211, 153, 0.2);
+        --green: #22c55e;
+        --green-glow: rgba(34, 197, 94, 0.35);
+        --red: #f87171;
+        --orange: #fb923c;
+        --yellow: #fbbf24;
+        --text: #e2e8f0;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --border: rgba(148, 163, 184, 0.12);
+        --border-hover: rgba(148, 163, 184, 0.25);
+        --radius-xl: 20px;
+        --radius-lg: 16px;
+        --radius-md: 12px;
+        --radius-sm: 8px;
+        --radius-pill: 999px;
+        --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        --shadow-glow: 0 0 40px rgba(56, 189, 248, 0.08);
+        --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background: var(--bg-deep);
+        color: var(--text);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* Animated background */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(ellipse 80% 50% at 20% 0%, rgba(56, 189, 248, 0.06) 0%, transparent 50%),
+          radial-gradient(ellipse 60% 40% at 80% 100%, rgba(167, 139, 250, 0.05) 0%, transparent 50%),
+          radial-gradient(ellipse 50% 60% at 50% 50%, rgba(52, 211, 153, 0.03) 0%, transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+        animation: bgPulse 8s ease-in-out infinite alternate;
+      }
+
+      @keyframes bgPulse {
+        0% { opacity: 0.7; }
+        100% { opacity: 1; }
+      }
+
+      /* ─── NAVBAR ─────────────────────────────────────────────────────── */
+      .navbar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        height: 56px;
+        background: rgba(2, 6, 23, 0.85);
+        backdrop-filter: blur(20px) saturate(1.5);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .nav-logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #22c55e 0%, #0ea5e9 50%, #a78bfa 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 18px;
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+        animation: logoPulse 3s ease-in-out infinite;
+      }
+
+      @keyframes logoPulse {
+        0%, 100% { box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4); }
+        50% { box-shadow: 0 4px 30px rgba(14, 165, 233, 0.5); }
+      }
+
+      .nav-title {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .nav-subtitle {
+        font-size: 11px;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .nav-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 14px;
+        border-radius: var(--radius-pill);
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        background: rgba(34, 197, 94, 0.08);
+        color: #86efac;
+        transition: var(--transition-fast);
+      }
+
+      .nav-status .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green-glow);
+        animation: dotBlink 2s ease-in-out infinite;
+      }
+
+      @keyframes dotBlink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+      }
+
+      .nav-timestamp {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* ─── LAYOUT ────────────────────────────────────────────────────── */
+      .app-layout {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        gap: 0;
+        min-height: calc(100vh - 56px);
+      }
+
+      @media (max-width: 1024px) {
+        .app-layout { grid-template-columns: minmax(0, 1fr); }
+        .sidebar { display: none; }
+      }
+
+      /* ─── SIDEBAR ───────────────────────────────────────────────────── */
+      .sidebar {
+        padding: 20px 16px;
+        border-right: 1px solid var(--border);
+        background: rgba(2, 6, 23, 0.6);
+        backdrop-filter: blur(12px);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .sidebar-section {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .sidebar-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 600;
+        color: var(--text-muted);
+        padding-left: 2px;
+      }
+
+      .sidebar-label .req { color: var(--orange); }
+
+      .select-field, .input-field {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        color: var(--text);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        outline: none;
+        cursor: pointer;
+        transition: var(--transition-fast);
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      .select-field {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 32px;
+      }
+
+      .select-field:focus, .input-field:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
+
+      .select-field option {
+        background: #0a0f1e;
+        color: var(--text);
+      }
+
+      /* ── Time pills ── */
+      .pill-group {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .pill {
+        padding: 6px 14px;
+        border-radius: var(--radius-pill);
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: var(--transition-fast);
+      }
+
+      .pill:hover {
+        border-color: var(--border-hover);
+        background: rgba(56, 189, 248, 0.05);
+      }
+
+      .pill[data-active="true"] {
+        border-color: var(--accent);
+        background: rgba(56, 189, 248, 0.12);
+        color: var(--accent);
+        box-shadow: 0 0 12px var(--accent-glow);
+      }
+
+      /* ── Source toggles ── */
+      .source-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: transparent;
+        cursor: pointer;
+        transition: var(--transition-fast);
+      }
+
+      .source-toggle:hover { background: rgba(56, 189, 248, 0.04); }
+
+      .source-toggle input[type="checkbox"] {
+        accent-color: var(--accent);
+        width: 14px;
+        height: 14px;
+      }
+
+      .source-toggle .source-name {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text);
+        flex: 1;
+      }
+
+      .source-toggle .source-badge {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: var(--radius-pill);
+      }
+
+      .source-badge.active {
+        background: rgba(34, 197, 94, 0.15);
+        color: #86efac;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+      }
+
+      .source-badge.planned {
+        background: rgba(251, 191, 36, 0.1);
+        color: #fcd34d;
+        border: 1px solid rgba(251, 191, 36, 0.2);
+      }
+
+      /* ── Run button ── */
+      .run-btn {
+        width: 100%;
+        padding: 12px 20px;
+        border-radius: var(--radius-md);
+        border: none;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: #ecfdf5;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0ea5e9 100%);
+        box-shadow: 0 8px 30px rgba(5, 150, 105, 0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+        transition: var(--transition-fast);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .run-btn::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+        transform: translateX(-100%);
+        transition: transform 400ms ease;
+      }
+
+      .run-btn:hover::before { transform: translateX(100%); }
+
+      .run-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 40px rgba(5, 150, 105, 0.45), inset 0 1px 0 rgba(255,255,255,0.15);
+      }
+
+      .run-btn:active { transform: translateY(0); }
+
+      .run-btn[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+
+      .run-btn .btn-icon {
+        font-size: 16px;
+        transition: transform var(--transition-fast);
+      }
+
+      .run-btn:not([disabled]):hover .btn-icon { transform: scale(1.15); }
+
+      /* ── Error banner ── */
+      .error-banner {
+        padding: 10px 14px;
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(248, 113, 113, 0.3);
+        background: rgba(127, 29, 29, 0.2);
+        font-size: 12px;
+        color: #fca5a5;
+        display: none;
+        align-items: flex-start;
+        gap: 8px;
+        line-height: 1.5;
+      }
+
+      .error-banner[data-visible="true"] {
+        display: flex;
+        animation: shakeIn 300ms ease;
+      }
+
+      @keyframes shakeIn {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-4px); }
+        75% { transform: translateX(4px); }
+      }
+
+      .sidebar-hint {
+        font-size: 11px;
+        color: var(--text-muted);
+        line-height: 1.6;
+        padding: 8px 0;
+        border-top: 1px solid var(--border);
+        margin-top: auto;
+      }
+
+      /* ─── MAIN CONTENT ─────────────────────────────────────────────── */
+      .main-content {
+        padding: 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      @media (max-width: 640px) {
+        .main-content { padding: 16px; gap: 14px; }
+      }
+
+      /* ── Header bar ── */
+      .content-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .header-title {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .header-context {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+      }
+
+      .header-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .hbadge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: var(--radius-pill);
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid;
+      }
+
+      .hbadge.live {
+        border-color: rgba(34, 197, 94, 0.3);
+        background: rgba(34, 197, 94, 0.08);
+        color: #86efac;
+      }
+
+      .hbadge.proto {
+        border-color: rgba(251, 191, 36, 0.25);
+        background: rgba(251, 191, 36, 0.06);
+        color: #fcd34d;
+      }
+
+      /* ─── KPI GRID ──────────────────────────────────────────────────── */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      @media (max-width: 1280px) {
+        .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      }
+      @media (max-width: 768px) {
+        .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 480px) {
+        .kpi-grid { grid-template-columns: minmax(0, 1fr); }
+      }
+
+      .kpi {
+        padding: 16px;
+        border-radius: var(--radius-lg);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(12px);
+        transition: var(--transition-smooth);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .kpi::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        border-radius: 2px 2px 0 0;
+        transition: var(--transition-fast);
+      }
+
+      .kpi:nth-child(1)::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+      .kpi:nth-child(2)::before { background: linear-gradient(90deg, var(--red), var(--orange)); }
+      .kpi:nth-child(3)::before { background: linear-gradient(90deg, var(--accent3), var(--accent)); }
+      .kpi:nth-child(4)::before { background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+      .kpi:nth-child(5)::before { background: linear-gradient(90deg, var(--orange), var(--red)); }
+      .kpi:nth-child(6)::before { background: linear-gradient(90deg, var(--green), var(--accent3)); }
+
+      .kpi:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--border-hover);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-glow);
+      }
+
+      .kpi-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+
+      .kpi-value {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text);
+        line-height: 1;
+      }
+
+      .kpi-sub {
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .kpi-sub .up { color: var(--red); }
+      .kpi-sub .down { color: var(--green); }
+      .kpi-sub .neutral { color: var(--text-muted); }
+
+      /* ─── CHART GRID ────────────────────────────────────────────────── */
+      .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      @media (max-width: 960px) {
+        .chart-grid { grid-template-columns: minmax(0, 1fr); }
+      }
+
+      .chart-card {
+        padding: 16px;
+        border-radius: var(--radius-lg);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(12px);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 260px;
+        transition: var(--transition-smooth);
+      }
+
+      .chart-card:hover {
+        border-color: var(--border-hover);
+      }
+
+      .chart-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .chart-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .chart-subtitle {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .chart-wrapper {
+        position: relative;
+        flex: 1;
+        min-height: 180px;
+      }
+
+      /* ─── DATA SOURCE STATUS ────────────────────────────────────────── */
+      .sources-panel {
+        padding: 16px;
+        border-radius: var(--radius-lg);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(12px);
+      }
+
+      .sources-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 12px;
+      }
+
+      .sources-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 8px;
+      }
+
+      .source-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border);
+        background: rgba(6, 10, 28, 0.4);
+        transition: var(--transition-fast);
+      }
+
+      .source-card:hover {
+        border-color: var(--border-hover);
+        background: rgba(15, 23, 50, 0.4);
+      }
+
+      .source-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .source-dot.active {
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green-glow);
+      }
+
+      .source-dot.planned {
+        background: var(--yellow);
+        box-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
+      }
+
+      .source-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .source-card-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .source-card-desc {
+        font-size: 10px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* ─── FOOTER ────────────────────────────────────────────────────── */
+      .app-footer {
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 11px;
+        color: var(--text-muted);
+        border-top: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+
+      .footer-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      /* ─── LOADING SKELETON ──────────────────────────────────────────── */
+      .shimmer {
+        background: linear-gradient(90deg,
+          rgba(148, 163, 184, 0.05) 25%,
+          rgba(148, 163, 184, 0.12) 50%,
+          rgba(148, 163, 184, 0.05) 75%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s ease-in-out infinite;
+        border-radius: var(--radius-sm);
+      }
+
+      @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+
+      /* ─── SCROLLBAR ─────────────────────────────────────────────────── */
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.2);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.35); }
+    </style>
+  </head>
+  <body>
+
+    <!-- ═══════════════ NAVBAR ═══════════════ -->
+    <nav class="navbar" id="navbar">
+      <div class="nav-brand">
+        <div class="nav-logo">μ</div>
+        <div>
+          <div class="nav-title">MedFusion</div>
+          <div class="nav-subtitle">Disease Surveillance Intelligence</div>
+        </div>
+      </div>
+      <div class="nav-right">
+        <div class="nav-status" id="nav-status">
+          <span class="dot"></span>
+          <span id="nav-status-text">Connecting…</span>
+        </div>
+        <div class="nav-timestamp" id="nav-timestamp">—</div>
+      </div>
+    </nav>
+
+    <div class="app-layout">
+      <!-- ═══════════════ SIDEBAR ═══════════════ -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-label">Disease <span class="req">*</span></div>
+          <select id="disease-input" class="select-field">
+            <option value="COVID-19" selected>COVID-19</option>
+            <option value="Influenza">Influenza</option>
+            <option value="Dengue">Dengue</option>
+            <option value="Malaria">Malaria</option>
+            <option value="Tuberculosis">Tuberculosis</option>
+            <option value="Measles">Measles</option>
+            <option value="Cholera">Cholera</option>
+            <option value="HIV/AIDS">HIV/AIDS</option>
+            <option value="Ebola">Ebola</option>
+            <option value="Hepatitis B">Hepatitis B</option>
+            <option value="Polio">Polio</option>
+            <option value="Yellow Fever">Yellow Fever</option>
+            <option value="Zika">Zika</option>
+          </select>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">Country / Region</div>
+          <select id="region-input" class="select-field">
+            <optgroup label="Global">
+              <option value="Global" selected>🌍 Global (all combined)</option>
+            </optgroup>
+            <optgroup label="Asia">
+              <option value="India">🇮🇳 India</option>
+              <option value="China">🇨🇳 China</option>
+              <option value="Japan">🇯🇵 Japan</option>
+              <option value="South Korea">🇰🇷 South Korea</option>
+              <option value="Indonesia">🇮🇩 Indonesia</option>
+              <option value="Thailand">🇹🇭 Thailand</option>
+              <option value="Vietnam">🇻🇳 Vietnam</option>
+              <option value="Pakistan">🇵🇰 Pakistan</option>
+              <option value="Bangladesh">🇧🇩 Bangladesh</option>
+              <option value="Philippines">🇵🇭 Philippines</option>
+              <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+              <option value="Turkey">🇹🇷 Turkey</option>
+            </optgroup>
+            <optgroup label="Europe">
+              <option value="United Kingdom">🇬🇧 United Kingdom</option>
+              <option value="Germany">🇩🇪 Germany</option>
+              <option value="France">🇫🇷 France</option>
+              <option value="Italy">🇮🇹 Italy</option>
+              <option value="Spain">🇪🇸 Spain</option>
+              <option value="Russia">🇷🇺 Russia</option>
+            </optgroup>
+            <optgroup label="Americas">
+              <option value="United States">🇺🇸 United States</option>
+              <option value="Brazil">🇧🇷 Brazil</option>
+              <option value="Canada">🇨🇦 Canada</option>
+              <option value="Mexico">🇲🇽 Mexico</option>
+              <option value="Argentina">🇦🇷 Argentina</option>
+              <option value="Colombia">🇨🇴 Colombia</option>
+            </optgroup>
+            <optgroup label="Africa">
+              <option value="South Africa">🇿🇦 South Africa</option>
+              <option value="Nigeria">🇳🇬 Nigeria</option>
+              <option value="Kenya">🇰🇪 Kenya</option>
+              <option value="Egypt">🇪🇬 Egypt</option>
+            </optgroup>
+            <optgroup label="Oceania">
+              <option value="Australia">🇦🇺 Australia</option>
+              <option value="New Zealand">🇳🇿 New Zealand</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">Visible Window</div>
+          <div class="pill-group" id="time-window-row">
+            <button class="pill" data-window="14">14d</button>
+            <button class="pill" data-window="30" data-active="true">30d</button>
+            <button class="pill" data-window="90">90d</button>
+            <button class="pill" data-window="180">180d</button>
+            <button class="pill" data-window="365">1y</button>
+            <button class="pill" data-window="all">Full</button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">Data Sources</div>
+          <label class="source-toggle">
+            <input type="checkbox" value="disease_sh" checked />
+            <span class="source-name">disease.sh</span>
+            <span class="source-badge active">Live</span>
+          </label>
+          <label class="source-toggle">
+            <input type="checkbox" value="who" checked />
+            <span class="source-name">WHO GHO</span>
+            <span class="source-badge active">Live</span>
+          </label>
+          <label class="source-toggle">
+            <input type="checkbox" value="owid" checked />
+            <span class="source-name">Our World in Data</span>
+            <span class="source-badge active">Live</span>
+          </label>
+          <label class="source-toggle">
+            <input type="checkbox" value="cdc" checked />
+            <span class="source-name">CDC</span>
+            <span class="source-badge active">Live</span>
+          </label>
+          <label class="source-toggle">
+            <input type="checkbox" value="ecdc" checked />
+            <span class="source-name">ECDC</span>
+            <span class="source-badge active">Live</span>
+          </label>
+          <label class="source-toggle">
+            <input type="checkbox" value="healthmap" checked />
+            <span class="source-name">HealthMap</span>
+            <span class="source-badge active">Live</span>
+          </label>
+          <label class="source-toggle">
+            <input type="checkbox" value="promed" checked />
+            <span class="source-name">ProMED</span>
+            <span class="source-badge active">Live</span>
+          </label>
+          <label class="source-toggle">
+            <input type="checkbox" value="ihme" checked />
+            <span class="source-name">IHME GHDx</span>
+            <span class="source-badge active">Live</span>
+          </label>
+          <label class="source-toggle">
+            <input type="checkbox" value="ukgov" checked />
+            <span class="source-name">UK Gov</span>
+            <span class="source-badge active">Live</span>
+          </label>
+        </div>
+
+        <button id="run-button" class="run-btn">
+          <span class="btn-icon">▶</span>
+          <span>Run Analysis</span>
+        </button>
+
+        <div id="sidebar-error" class="error-banner" data-visible="false">
+          <span>⚠</span>
+          <span id="sidebar-error-text"></span>
+        </div>
+
+        <div class="sidebar-hint">
+          Multi-source analytics engine. Data from disease.sh, WHO GHO, and Our World in Data.
+          Additional sources (CDC, ECDC, HealthMap, ProMED) scaffolded for plug-in.
+        </div>
+      </aside>
+
+      <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+      <div class="main-content">
+        <!-- Header -->
+        <div class="content-header">
+          <div>
+            <h1 class="header-title">Intelligence Dashboard</h1>
+            <div class="header-context" id="region-title">Loading surveillance data…</div>
+          </div>
+          <div class="header-badges">
+            <span class="hbadge live">
+              <span class="dot" style="width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.4)"></span>
+              Live Data
+            </span>
+            <span class="hbadge proto">⚗ Prototype · Not for clinical use</span>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <section class="kpi-grid" id="kpi-grid">
+          <div class="kpi">
+            <div class="kpi-label">Global Cases</div>
+            <div class="kpi-value" id="kpi-global-cases">—</div>
+            <div class="kpi-sub"><span class="up" id="kpi-global-today">—</span> new today</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Global Deaths</div>
+            <div class="kpi-value" id="kpi-global-deaths">—</div>
+            <div class="kpi-sub"><span class="up" id="kpi-global-deaths-today">—</span> new today</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Region Active</div>
+            <div class="kpi-value" id="kpi-region-active">—</div>
+            <div class="kpi-sub"><span class="neutral" id="kpi-region-critical">—</span> critical</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Cases / 1M</div>
+            <div class="kpi-value" id="kpi-cases-per-m">—</div>
+            <div class="kpi-sub"><span class="neutral">per million pop.</span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Deaths / 1M</div>
+            <div class="kpi-value" id="kpi-deaths-per-m">—</div>
+            <div class="kpi-sub"><span class="neutral">per million pop.</span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Recovery Rate</div>
+            <div class="kpi-value" id="kpi-recovery-rate">—</div>
+            <div class="kpi-sub"><span class="neutral" id="kpi-points">—</span> data points</div>
+          </div>
+        </section>
+
+        <!-- Charts -->
+        <section class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Epidemiological Curve</div>
+                <div class="chart-subtitle">Daily cases & 7-day moving average</div>
+              </div>
+            </div>
+            <div class="chart-wrapper"><canvas id="cases-chart"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Deaths Trend</div>
+                <div class="chart-subtitle">Cumulative deaths over time</div>
+              </div>
+            </div>
+            <div class="chart-wrapper"><canvas id="deaths-chart"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Incidence / 100k</div>
+                <div class="chart-subtitle">Relative burden for cross-region comparison</div>
+              </div>
+            </div>
+            <div class="chart-wrapper"><canvas id="incidence-chart"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Growth Rate</div>
+                <div class="chart-subtitle">Day-over-day change in cumulative cases</div>
+              </div>
+            </div>
+            <div class="chart-wrapper"><canvas id="growth-chart"></canvas></div>
+          </div>
+        </section>
+
+        <!-- Data Sources Panel -->
+        <section class="sources-panel" id="sources-panel">
+          <div class="sources-title">Data Source Providers</div>
+          <div class="sources-grid" id="sources-grid">
+            <!-- filled by JS -->
+          </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+          <div class="footer-left">
+            <span>© 2026 MedFusion — Hackfest Prototype</span>
+            <span>·</span>
+            <span id="footer-sources">Sources: disease.sh, WHO GHO, OWID</span>
+          </div>
+          <div>
+            <span id="footer-refresh">Last refresh: —</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      /* ═══════════════════════════════════════════════════════════════════
+         APPLICATION LOGIC
+         ═══════════════════════════════════════════════════════════════════ */
+      const API = window.location.origin;
+
+      // ── DOM refs ──
+      const $ = (id) => document.getElementById(id);
+      const runBtn          = $('run-button');
+      const diseaseInput    = $('disease-input');
+      const regionInput     = $('region-input');
+      const sidebarError    = $('sidebar-error');
+      const sidebarErrorTxt = $('sidebar-error-text');
+      const regionTitle     = $('region-title');
+      const navStatusText   = $('nav-status-text');
+      const navStatus       = $('nav-status');
+      const navTimestamp     = $('nav-timestamp');
+      const footerRefresh   = $('footer-refresh');
+      const timePills       = [...document.querySelectorAll('#time-window-row .pill')];
+
+      // KPI refs
+      const kGlobalCases      = $('kpi-global-cases');
+      const kGlobalToday      = $('kpi-global-today');
+      const kGlobalDeaths     = $('kpi-global-deaths');
+      const kGlobalDeathsToday= $('kpi-global-deaths-today');
+      const kRegionActive     = $('kpi-region-active');
+      const kRegionCritical   = $('kpi-region-critical');
+      const kCasesPM          = $('kpi-cases-per-m');
+      const kDeathsPM         = $('kpi-deaths-per-m');
+      const kRecoveryRate     = $('kpi-recovery-rate');
+      const kPoints           = $('kpi-points');
+
+      let casesChart, deathsChart, incidenceChart, growthChart;
+
+      // ── Helpers ──
+      const fmt = (n) => n != null ? n.toLocaleString('en-IN') : '—';
+      const fmtPct = (n) => n != null ? n.toFixed(1) + '%' : '—';
+
+      function setError(msg) {
+        sidebarError.setAttribute('data-visible', msg ? 'true' : 'false');
+        sidebarErrorTxt.textContent = msg || '';
+      }
+
+      function setNavStatus(ok, msg) {
+        navStatusText.textContent = msg;
+        navStatus.style.borderColor = ok ? 'rgba(34,197,94,0.3)' : 'rgba(248,113,113,0.4)';
+        navStatus.style.background = ok ? 'rgba(34,197,94,0.08)' : 'rgba(127,29,29,0.15)';
+        navStatus.style.color = ok ? '#86efac' : '#fca5a5';
+      }
+
+      function updateTimestamp() {
+        const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        navTimestamp.textContent = now;
+        footerRefresh.textContent = `Last refresh: ${now}`;
+      }
+
+      function getTimeWindow() {
+        const active = timePills.find(b => b.dataset.active === 'true');
+        return active ? active.dataset.window : '30';
+      }
+
+      function windowToDays(val, total) {
+        if (val === 'all') return total;
+        const n = parseInt(val, 10);
+        return (isNaN(n) || n <= 0) ? total : Math.min(n, total);
+      }
+
+      function getSelectedSources() {
+        return [...document.querySelectorAll('.source-toggle input:checked')].map(c => c.value);
+      }
+
+      // ── Chart defaults ──
+      const chartDefaults = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 600, easing: 'easeOutQuart' },
+        plugins: {
+          legend: { labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 }, boxWidth: 12, padding: 12 } },
+          tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(10,15,30,0.95)', borderColor: 'rgba(148,163,184,0.2)', borderWidth: 1,
+            titleFont: { family: 'Inter', size: 12 }, bodyFont: { family: 'Inter', size: 11 },
+            padding: 10, cornerRadius: 8
+          },
+        },
+        scales: {
+          x: { ticks: { color: '#64748b', font: { size: 10, family: 'Inter' }, maxTicksLimit: 8 }, grid: { color: 'rgba(148,163,184,0.06)' } },
+          y: { ticks: { color: '#64748b', font: { size: 10, family: 'Inter' },
+            callback(v) { return v >= 1e9 ? (v/1e9).toFixed(1)+'B' : v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'k' : v; }
+          }, grid: { color: 'rgba(148,163,184,0.06)' } },
+        },
+      };
+
+      function ensureCharts() {
+        if (!casesChart) {
+          casesChart = new Chart($('cases-chart').getContext('2d'), {
+            type: 'line',
+            data: { labels: [], datasets: [
+              { label: 'Daily cases', data: [], borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.08)', borderWidth: 1.5, tension: 0.3, pointRadius: 0, fill: true },
+              { label: '7d avg', data: [], borderColor: '#34d399', borderWidth: 2, tension: 0.35, pointRadius: 0, fill: false, borderDash: [4, 2] },
+            ]},
+            options: { ...chartDefaults },
+          });
+        }
+
+        if (!deathsChart) {
+          deathsChart = new Chart($('deaths-chart').getContext('2d'), {
+            type: 'line',
+            data: { labels: [], datasets: [
+              { label: 'Deaths', data: [], borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.08)', borderWidth: 1.5, tension: 0.3, pointRadius: 0, fill: true },
+            ]},
+            options: { ...chartDefaults },
+          });
+        }
+
+        if (!incidenceChart) {
+          incidenceChart = new Chart($('incidence-chart').getContext('2d'), {
+            type: 'line',
+            data: { labels: [], datasets: [
+              { label: 'Incidence / 100k', data: [], borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', borderWidth: 1.7, tension: 0.3, pointRadius: 0, fill: true },
+            ]},
+            options: { ...chartDefaults },
+          });
+        }
+
+        if (!growthChart) {
+          growthChart = new Chart($('growth-chart').getContext('2d'), {
+            type: 'bar',
+            data: { labels: [], datasets: [
+              { label: 'Growth rate', data: [], backgroundColor: [], borderRadius: 2, barPercentage: 0.8 },
+            ]},
+            options: {
+              ...chartDefaults,
+              plugins: {
+                ...chartDefaults.plugins,
+                legend: { display: false },
+              },
+              scales: {
+                ...chartDefaults.scales,
+                y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks,
+                  callback(v) { return (v * 100).toFixed(1) + '%'; }
+                }},
+              },
+            },
+          });
+        }
+      }
+
+      function updateCharts(analytics) {
+        ensureCharts();
+        const full = analytics?.series || [];
+        const wv = getTimeWindow();
+        const days = windowToDays(wv, full.length);
+        const series = full.slice(-days);
+        const labels = series.map(p => p.date);
+
+        // Epi curve
+        casesChart.data.labels = labels;
+        casesChart.data.datasets[0].data = series.map(p => p.cases ?? null);
+        casesChart.data.datasets[1].data = series.map(p => p.moving_avg_7d ?? null);
+        casesChart.update();
+
+        // Deaths
+        deathsChart.data.labels = labels;
+        deathsChart.data.datasets[0].data = series.map(p => p.deaths ?? null);
+        deathsChart.update();
+
+        // Incidence
+        incidenceChart.data.labels = labels;
+        incidenceChart.data.datasets[0].data = series.map(p => p.incidence_per_100k ?? null);
+        incidenceChart.update();
+
+        // Growth rate
+        const rates = series.map(p => p.growth_rate ?? 0);
+        const colors = rates.map(r => r >= 0 ? 'rgba(248,113,113,0.7)' : 'rgba(52,211,153,0.7)');
+        growthChart.data.labels = labels;
+        growthChart.data.datasets[0].data = rates;
+        growthChart.data.datasets[0].backgroundColor = colors;
+        growthChart.update();
+
+        return days;
+      }
+
+      function updateKpis(globalData, analytics, visibleDays) {
+        if (globalData) {
+          kGlobalCases.textContent = fmt(globalData.cases);
+          kGlobalToday.textContent = '+' + fmt(globalData.todayCases ?? 0);
+          kGlobalDeaths.textContent = fmt(globalData.deaths);
+          kGlobalDeathsToday.textContent = '+' + fmt(globalData.todayDeaths ?? 0);
+        }
+
+        if (analytics?.summary) {
+          const s = analytics.summary;
+          kRegionActive.textContent = fmt(s.active);
+          kRegionCritical.textContent = fmt(s.critical);
+          kCasesPM.textContent = fmt(Math.round(s.cases_per_million ?? 0));
+          kDeathsPM.textContent = fmt(Math.round(s.deaths_per_million ?? 0));
+
+          const recovered = s.recovered ?? 0;
+          const totalCases = s.latest_cases ?? 0;
+          const rate = totalCases > 0 ? (recovered / totalCases) * 100 : 0;
+          kRecoveryRate.textContent = fmtPct(rate);
+          kPoints.textContent = fmt(visibleDays ?? s.points_returned);
+
+          const suffix = visibleDays && s.points_returned && visibleDays < s.points_returned
+            ? `last ${visibleDays} days` : 'full timeline';
+          regionTitle.textContent = `${analytics.region} · ${analytics.disease} · ${suffix}`;
+        }
+      }
+
+      // ── Data sources panel ──
+      async function loadSourcesPanel() {
+        try {
+          const data = await fetchJson(`${API}/sources/status`);
+          const grid = $('sources-grid');
+          grid.innerHTML = '';
+          for (const [key, src] of Object.entries(data.sources || {})) {
+            const card = document.createElement('div');
+            card.className = 'source-card';
+            card.innerHTML = `
+              <div class="source-dot ${src.status}"></div>
+              <div class="source-info">
+                <div class="source-card-name">${src.name}</div>
+                <div class="source-card-desc">${src.description}</div>
+              </div>
+            `;
+            grid.appendChild(card);
+          }
+        } catch (e) { console.warn('Could not load sources', e); }
+      }
+
+      // ── API calls ──
+      async function fetchJson(url, opts) {
+        const res = await fetch(url, opts);
+        if (!res.ok) {
+          const t = await res.text();
+          throw new Error(`HTTP ${res.status} – ${t.slice(0, 160)}`);
+        }
+        return res.json();
+      }
+
+      async function loadGlobal() {
+        try { return await fetchJson(`${API}/surveillance/global`); }
+        catch (e) { console.error('Global snapshot failed', e); return null; }
+      }
+
+      async function runAnalysis() {
+        const disease = (diseaseInput.value || 'COVID-19').trim();
+        const region  = (regionInput.value || 'Global').trim();
+        const sources = getSelectedSources();
+
+        setError('');
+        runBtn.disabled = true;
+        runBtn.querySelector('.btn-icon').textContent = '⟳';
+        runBtn.querySelector('span:nth-child(2)').textContent = 'Running…';
+
+        try {
+          const [globalData, analytics] = await Promise.all([
+            loadGlobal(),
+            fetchJson(`${API}/analytics/query`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ disease, region, time_window: 'full', sources }),
+            }),
+          ]);
+
+          const visibleDays = updateCharts(analytics);
+          updateKpis(globalData, analytics, visibleDays);
+          setNavStatus(true, 'Backend: healthy · live data');
+          updateTimestamp();
+        } catch (err) {
+          console.error(err);
+          setError('Unable to run analytics. Check that the FastAPI backend is running and the selected disease/region are valid.');
+          setNavStatus(false, 'Backend: error');
+        } finally {
+          runBtn.disabled = false;
+          runBtn.querySelector('.btn-icon').textContent = '▶';
+          runBtn.querySelector('span:nth-child(2)').textContent = 'Run Analysis';
+        }
+      }
+
+      async function probeBackend() {
+        try {
+          const res = await fetch(`${API}/health`);
+          if (res.ok) setNavStatus(true, 'Backend: healthy');
+          else setNavStatus(false, 'Backend: health check failed');
+        } catch (e) {
+          setNavStatus(false, 'Backend: not reachable');
+        }
+      }
+
+      // ── Wire up ──
+      function init() {
+        // Time pills
+        timePills.forEach(btn => {
+          btn.addEventListener('click', () => {
+            timePills.forEach(b => b.removeAttribute('data-active'));
+            btn.setAttribute('data-active', 'true');
+          });
+        });
+
+        runBtn.addEventListener('click', runAnalysis);
+
+        probeBackend();
+        loadSourcesPanel();
+        runAnalysis();
+      }
+
+      window.addEventListener('DOMContentLoaded', init);
+    </script>
+  </body>
+</html>
